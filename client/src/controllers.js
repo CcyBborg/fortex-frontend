@@ -36,9 +36,7 @@ export function deleteWalls() {
 
     const it = myFloorplan.nodes.filter(n => n.category === 'WallGroup').iterator;
     while (it.next()) {
-        if (!it.value.isProcessed) {
-            myFloorplan.remove(it.value);
-        }
+        myFloorplan.remove(it.value);
     }
 }
 
@@ -55,7 +53,7 @@ export function getPerimeter(walls) {
     return coordinates;
 }
 
-export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutType, layoutDirection }) {
+export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutType, layoutDirection, callback }) {
     axios.get('https://fortex-agency.herokuapp.com/', {
         params: {
             coords: JSON.stringify(room.perimeter),
@@ -77,7 +75,10 @@ export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutTyp
                 clearance: drawPerimeter(clearance, { fill: 'salmon', opacity: .7 })
             });
         }
+
+        callback();
     });
+    
 }
 
 export function drawPerimeter(perimeter, { fill, opacity = 1 }) {

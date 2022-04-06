@@ -69,19 +69,11 @@ function init({ onSelectRoom }) {
         function (e) {
             onSelectRoom(e.subject.part);
         });
-}
 
-function calcAngle(A1x, A1y, A2x, A2y, B1x, B1y, B2x, B2y) {
-    //find vector components
-    var dAx = A2x - A1x;
-    var dAy = A2y - A1y;
-    var dBx = B2x - B1x;
-    var dBy = B2y - B1y;
-    var angle = Math.atan2(dAx * dBy - dAy * dBx, dAx * dBx + dAy * dBy);
-    if (angle < 0) { angle = angle * -1; }
-    var degree_angle = angle * (180 / Math.PI);
-
-    return degree_angle
+        myFloorplan.addDiagramListener("BackgroundSingleClicked",
+        function (e) {
+            onSelectRoom();
+        });
 }
 
 function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom }) {

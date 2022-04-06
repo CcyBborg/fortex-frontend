@@ -1,5 +1,7 @@
-import { Row, Col, Form, Input, Button, Upload, Divider, List, Collapse, Typography } from 'antd';
-import { BankOutlined, LayoutOutlined, InboxOutlined } from '@ant-design/icons';
+import { useCallback } from 'react';
+import axios from 'axios';
+import { Row, Col, List, Collapse, Typography } from 'antd';
+import SearchForm from './components/SearchForm/SearchForm';
 
 const { Panel } = Collapse;
 const { Text } = Typography;
@@ -8,6 +10,23 @@ function SelectPlan({
     listData,
     onSelectPlan
 }) {
+
+    const handleSubmit = useCallback(data => {
+        console.log(data);
+        axios.get('https://fortexgroup.ru/api/response/blockLevels', {
+            params: {
+                ...data,
+                key: 'o4tthMmBtggBgXQD95m2'
+            },
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Referer': 'http://127.0.0.1',
+                'Referrer-Policy': 'unsafe-url',
+                'Accept-Encoding': 'gzip, deflate, br'
+            }
+        });
+    }, []);
+
     return (
         <Row align="top" justify='center'>
             <Col span={12}>
@@ -21,36 +40,8 @@ function SelectPlan({
                         position: 'relative'
                     }}
                 >
-                    <Form name="horizontal_login" layout="inline" onFinish={() => { }}
-                        style={{ justifyContent: 'center', position: 'sticky', top: '0', backgroundColor: '#fff', zIndex: 999, padding: '16px 0' }} size='large'>
-                        <Form.Item
-                            name="username"
-                            rules={[{ required: true, message: 'Здание' }]}
-                        >
-                            <Input prefix={<BankOutlined className="site-form-item-icon" />} placeholder="Здание" />
-                        </Form.Item>
-                        <Form.Item
-                            name="password"
-                            rules={[{ required: true, message: 'Помещение' }]}
-                        >
-                            <Input
-                                prefix={<LayoutOutlined className="site-form-item-icon" />}
-                                type="password"
-                                placeholder="Помещение"
-                            />
-                        </Form.Item>
-                        <Form.Item shouldUpdate>
-                            {() => (
-                                <Button
-                                    type="primary"
-                                    htmlType="submit"
-                                    block
-                                >
-                                    Найти
-                                </Button>
-                            )}
-                        </Form.Item>
-                    </Form>
+                    <SearchForm onSubmit={handleSubmit} />
+
                     <Collapse onChange={() => { }}>
                         {listData.map((item, i) => (
                             <Panel header={item.title} extra={(

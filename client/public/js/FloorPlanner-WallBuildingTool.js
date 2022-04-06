@@ -134,14 +134,13 @@ WallBuildingTool.prototype.doDeactivate = function () {
 
     this.isActive = false; // Default functionality
 
-    const walls = new go.List(myFloorplan.nodes.filter(n => n.category === 'WallGroup' && !n.isProcessed));
+    const walls = new go.List(myFloorplan.nodes.filter(n => n.category === 'WallGroup'));
     if (this.isScale && walls.size === 1) {
         const { data } = walls.get(0);
         this.isScale = false;
         this.onScaleSectionDrawn(getDistance(data.startpoint.x, data.startpoint.y, data.endpoint.x, data.endpoint.y));
     } else if (this.isSelection) {
         if (walls.size > 2 && myFloorplan.getWallsIntersection(walls.get(walls.size - 1), walls.get(0))) {
-            walls.each(n => n.isProcessed = true);
             this.isSelection = false;
             this.onSelected(walls);
         }
