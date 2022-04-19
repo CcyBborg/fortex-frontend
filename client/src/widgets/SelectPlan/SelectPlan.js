@@ -11,20 +11,17 @@ function SelectPlan({
     onSelectPlan
 }) {
 
-    const handleSubmit = useCallback(data => {
+    const handleSubmit = useCallback(async data => {
         console.log(data);
-        axios.get('https://fortexgroup.ru/api/response/blockLevels', {
+        console.log(await axios.get('https://fortexgroup.ru/api/response/blockLevels', {
             params: {
                 ...data,
                 key: 'o4tthMmBtggBgXQD95m2'
             },
             headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Referer': 'http://127.0.0.1',
-                'Referrer-Policy': 'unsafe-url',
-                'Accept-Encoding': 'gzip, deflate, br'
+                crossorigin: 'true'
             }
-        });
+        }));
     }, []);
 
     return (

@@ -1,5 +1,5 @@
-import { Form, Input, Button  } from 'antd';
-import { BankOutlined, LayoutOutlined} from '@ant-design/icons';
+import { Form, Input, Button } from 'antd';
+import { BankOutlined, LayoutOutlined } from '@ant-design/icons';
 
 function SearchForm({ onSubmit }) {
     return (
