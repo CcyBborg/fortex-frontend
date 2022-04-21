@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import axios from 'axios';
 import { Row, Col, List, Collapse, Typography } from 'antd';
 import SearchForm from './components/SearchForm/SearchForm';
@@ -7,22 +7,25 @@ const { Panel } = Collapse;
 const { Text } = Typography;
 
 function SelectPlan({
-    listData,
     onSelectPlan
 }) {
 
-    const handleSubmit = useCallback(async data => {
-        console.log(data);
-        console.log(await axios.get('https://fortexgroup.ru/api/response/blockLevels', {
+    const handleSubmit = useCallback(data => {
+        setIsLoading(true);
+
+        axios.get('https://fortexgroup.ru/api/response/blockLevels/', {
             params: {
                 ...data,
                 key: 'o4tthMmBtggBgXQD95m2'
-            },
-            headers: {
-                crossorigin: 'true'
             }
-        }));
+        }).then(res => {
+            setBlocks(res.data.list);
+            setIsLoading(false);
+        });
     }, []);
+
+    const [isLoading, setIsLoading] = useState(false);
+    const [blocks, setBlocks] = useState(null);
 
     return (
         <Row align="top" justify='center'>
@@ -37,41 +40,46 @@ function SelectPlan({
                         position: 'relative'
                     }}
                 >
-                    <SearchForm onSubmit={handleSubmit} />
+                    <SearchForm onSubmit={handleSubmit} isLoading={isLoading} />
 
-                    <Collapse onChange={() => { }}>
-                        {listData.map((item, i) => (
-                            <Panel header={item.title} extra={(
-                                <div style={{ textAlign: 'right' }}>
-                                    <Text>{item.meta}</Text><br />
-                                    <Text type='secondary'>{item.address}</Text>
-                                </div>)} key={i}>
-                                <List
-                                    itemLayout="vertical"
-                                    size="large"
-                                    dataSource={item.levels}
-                                    renderItem={(level, i) => (
-                                        <List.Item
-                                            key={i}
-                                            className='planItem'
-                                            onClick={() => {
-                                                onSelectPlan(level);
-                                            }}
-                                            extra={
-                                                <img
-                                                    height={80}
-                                                    alt="logo"
-                                                    src={level.img}
-                                                />
-                                            }
-                                        >
-                                            {level.title}
-                                        </List.Item>
-                                    )}
-                                />
-                            </Panel>
-                        ))}
-                    </Collapse>
+                    {Boolean(blocks?.length) && (
+                        <Collapse defaultActiveKey={blocks[0].id} onChange={() => { }}>
+                            {blocks.map(item => (
+                                <Panel
+                                    header={item.title}
+                                    extra={(
+                                        <div style={{ textAlign: 'right' }}>
+                                            <Text>{item.meta}</Text><br />
+                                            <Text type='secondary'>{item.address}</Text>
+                                        </div>)}
+                                    key={item.id}>
+                                    <List
+                                        itemLayout="vertical"
+                                        size="large"
+                                        dataSource={item.levels}
+                                        renderItem={level => (
+                                            <List.Item
+                                                key={level.id}
+                                                className='planItem'
+                                                onClick={() => {
+                                                    onSelectPlan(level);
+                                                }}
+                                                extra={
+                                                    <img
+                                                        height={80}
+                                                        alt="logo"
+                                                        src={level.img}
+                                                    />
+                                                }
+                                            >
+                                                {level.title}
+                                            </List.Item>
+                                        )}
+                                    />
+                                </Panel>
+                            ))}
+                        </Collapse>
+                    )}
                 </div>
             </Col>
         </Row>

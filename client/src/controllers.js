@@ -1,4 +1,5 @@
 import axios from 'axios';
+import uniqid from 'uniqid';
 
 export function enableDragging() {
     const {
@@ -29,14 +30,37 @@ export function enableWallDrawer({ isScale, isSelection, onScaleSectionDrawn, on
     wallReshapingTool.isEnabled = false;
 }
 
-export function deleteWalls() {
+export function deleteWalls(roomId) {
     const {
         myFloorplan
     } = window;
 
     const it = myFloorplan.nodes.filter(n => n.category === 'WallGroup').iterator;
     while (it.next()) {
+        if (it.value.roomId === roomId || !it.value.roomId)
         myFloorplan.remove(it.value);
+    }
+}
+
+export function setRoomForWalls(walls, roomId) {
+    for (let i = 0; i < walls.size; i++) {
+        const w = walls.get(i);
+        w.roomId = roomId;
+    }
+}
+
+export function hideWalls(selectedRoom) {
+    const {
+        myFloorplan
+    } = window;
+
+    const it = myFloorplan.nodes.filter(n => n.category === 'WallGroup').iterator;
+    while (it.next()) {
+        if (it.value.roomId === selectedRoom) {
+            it.value.opacity = 1;
+        } else {
+            it.value.opacity = .5;
+        }
     }
 }
 
@@ -53,7 +77,46 @@ export function getPerimeter(walls) {
     return coordinates;
 }
 
-export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutType, layoutDirection, callback }) {
+export function addDoor(point, roomId) {
+    const {
+        myFloorplan
+    } = window;
+
+    myFloorplan.model.addNodeData(
+        {
+            key: `${uniqid()}`,
+            category: "DoorNode",
+            color: "rgba(0, 0, 0, 0)",
+            caption: "Door",
+            type: "Door",
+            length: 40,
+            doorOpeningHeight: 5,
+            swing: "left",
+            loc: point.join(' '),
+            notes: "",
+            roomId
+        }
+    );
+}
+
+export function getLayout(room, selectedRoomId, { deskWidth, deskDepth, deskClearance, layoutType, layoutDirection, callback }) {
+    const blocks = [...room.blocks];
+    const it = window.myFloorplan.nodes.filter(n => n.category === 'DoorNode').iterator;
+    while (it.next()) {
+        if (it.value.data.roomId === selectedRoomId) {
+            const { actualBounds } = it.value;
+            const bounds = [
+                [actualBounds.x, actualBounds.y],
+                [actualBounds.x, actualBounds.y + actualBounds.height],
+                [actualBounds.x + actualBounds.width, actualBounds.y + actualBounds.height],
+                [actualBounds.x + actualBounds.width, actualBounds.y],
+                [actualBounds.x, actualBounds.y]
+            ];
+
+            blocks.push({ perimeter: bounds });
+        }
+    }
+
     axios.get('https://fortex-agency.herokuapp.com/', {
         params: {
             coords: JSON.stringify(room.perimeter),
@@ -62,7 +125,7 @@ export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutTyp
                 "desk_clearance": deskClearance, "door_depth": 40,
                 "layout_type": layoutType, "layout_direction": layoutDirection
             }),
-            doors: JSON.stringify(room.blocks?.length ? room.blocks.map(b => b.perimeter) : [])
+            doors: JSON.stringify(blocks.map(b => b.perimeter))
         }
     }).then(res => {
         room.layout = [];
@@ -71,17 +134,17 @@ export function getLayout(room, { deskWidth, deskDepth, deskClearance, layoutTyp
             const [desk, clearance] = res.data[i];
 
             room.layout.push({
-                desk: drawPerimeter(desk, { fill: 'darksalmon' }),
-                clearance: drawPerimeter(clearance, { fill: 'salmon', opacity: .7 })
+                desk: drawPerimeter(desk, { fill: 'darksalmon' }, selectedRoomId),
+                clearance: drawPerimeter(clearance, { fill: 'salmon', opacity: .7 }, selectedRoomId)
             });
         }
 
         callback();
     });
-    
+
 }
 
-export function drawPerimeter(perimeter, { fill, opacity = 1 }) {
+export function drawPerimeter(perimeter, { fill, opacity = 1 }, roomId) {
     const {
         myFloorplan,
         go
@@ -92,7 +155,7 @@ export function drawPerimeter(perimeter, { fill, opacity = 1 }) {
 
     const node = $(go.Node, {
         layerName: "Foreground", position: new go.Point(0, 0),
-        selectable: false
+        selectable: false,
     },
         $(go.Shape,
             {
@@ -100,6 +163,8 @@ export function drawPerimeter(perimeter, { fill, opacity = 1 }) {
                 fill, opacity
             })
     );
+
+    node.roomId = roomId;
 
     myFloorplan.add(node);
 

@@ -1,50 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import uniqid from 'uniqid';
 import randomColor from 'randomcolor';
 import { Layout, Space, Popover, Input, Button } from 'antd';
-import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter } from './controllers';
+import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls } from './controllers';
 import { CheckOutlined, InfoCircleTwoTone } from '@ant-design/icons';
 import Editor from './widgets/Editor/Editor';
 import SelectPlan from './widgets/SelectPlan/SelectPlan';
 import PageHeader from './widgets/PageHeader/PageHeader';
+import config from './config/admin';
 import 'antd/dist/antd.css';
 import './App.css';
 
 const { Content, Footer } = Layout;
-
-const listData = [
-  {
-    title: 'Башня федерации',
-    meta: '12 Этаж, 250 кв.м',
-    address: 'Пресненская наб., 12, Москва, 123317',
-    levels: [{
-      title: "Заголовок помещения",
-      img: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Sample_Floorplan.jpg'
-    },
-    {
-      title: "Ну и тут текст",
-      img: 'https://artisticvisions.com/wp-content/uploads/2018/08/HC-Floor-Plan-1.jpg'
-    }
-    ]
-  },
-  {
-    title: 'Башня мордора',
-    meta: '10 Этаж, 100 кв.м',
-    address: 'Шелепихинский туп., 19А, Москва, 123290',
-    levels: [{
-      title: "Заголовок помещения",
-      img: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Sample_Floorplan.jpg'
-    },
-    {
-      title: "Ну и тут текст",
-      img: 'https://artisticvisions.com/wp-content/uploads/2018/08/HC-Floor-Plan-1.jpg'
-    }
-    ]
-  }
-];
-
-for (let i = 0; i < 20; ++i) {
-  listData.push(listData[i % 2]);
-}
 
 function App() {
   const [plan, setPlan] = useState(null);
@@ -52,10 +19,11 @@ function App() {
   const [isSelectingRoom, setIsSelectingRoom] = useState(false);
   const [sectionLength, setSectionLength] = useState(null);
   const [sectionScale, setSectionScale] = useState(null);
-  const [selectedRoom, setSelectedRoom] = useState(null);
 
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const [rooms, setRooms] = useState({});
 
-  useEffect(() => { window.rooms = [] }, []);
+  const selectedRoom = useMemo(() => rooms[selectedRoomId], [selectedRoomId, rooms]);
 
   const startSelection = useCallback(() => {
     setIsSelectingRoom(true);
@@ -65,13 +33,27 @@ function App() {
         setIsSelectingRoom(false);
         enableDragging();
         const perimeter = getPerimeter(walls);
-        const area = drawPerimeter(perimeter, { fill: randomColor(), opacity: .3 });
-        window.rooms.push({ title: 'Название помещение', perimeter, area, blocks: [], layout: [] });
-        setSelectedRoom(window.rooms[window.rooms.length - 1]);
-        deleteWalls();
+        const id = uniqid();
+        const area = drawPerimeter(perimeter, { fill: randomColor(), opacity: .3 }, id);
+
+        const newRoom = {
+          title: 'Название помещения',
+          perimeter,
+          area,
+          blocks: [],
+          layout: [],
+          layoutParams: config.layout_settings_templates.default
+        };
+        setRoomForWalls(walls, id);
+        setRooms({
+          ...rooms,
+          [id]: newRoom
+        });
+
+        setSelectedRoomId(id);
       }
     });
-  }, []);
+  }, [rooms]);
 
   const startBlockSelection = useCallback(() => {
     enableWallDrawer({
@@ -80,7 +62,7 @@ function App() {
         const { myFloorplan } = window;
         enableDragging();
         const perimeter = getPerimeter(walls);
-        const node = drawPerimeter(perimeter, { fill: 'red', opacity: .3 });
+        const node = drawPerimeter(perimeter, { fill: 'red', opacity: .3 }, selectedRoomId);
         selectedRoom.blocks.push(
           {
             node,
@@ -95,6 +77,18 @@ function App() {
     });
   }, [selectedRoom]);
 
+  const handleSelectRoom = useCallback(area => {
+    if (area) {
+      for (const rId of Object.keys(rooms)) {
+        if (rId === area.roomId || rId === area.data?.roomId) {
+          return setSelectedRoomId(rId);
+        }
+      }
+    } else {
+      setSelectedRoomId(null);
+    }
+  }, [rooms]);
+
   return (
     <Layout className='layout'>
       {edit && (
@@ -104,9 +98,25 @@ function App() {
           startSelection={startSelection}
           plan={plan}
           selectedRoom={selectedRoom}
+          selectedRoomId={selectedRoomId}
           sectionScale={sectionScale}
-          setSelectedRoom={setSelectedRoom}
+          changeRoom={(roomId, changes) => setRooms({
+            ...rooms,
+            [roomId]: {
+              ...rooms[roomId],
+              ...changes
+            }
+          })}
+          setSelectedRoom={setSelectedRoomId}
+          setRooms={setRooms}
           startBlockSelection={startBlockSelection}
+          handleLayoutParamsChange={newParams => setRooms({
+            ...rooms,
+            [selectedRoomId]: {
+              ...rooms[selectedRoomId],
+              layoutParams: newParams
+            }
+          })}
           sectionLength={sectionLength} />
       )}
       <Content style={{ padding: '50px' }}>
@@ -148,17 +158,10 @@ function App() {
                 isScale={plan && !sectionLength}
                 onScaleSectionDrawn={sectionLength => setSectionLength(sectionLength)}
                 planImg={plan.img}
-                onSelectRoom={area => {
-                  for (const r of window.rooms) {
-                    if (r.area === area) {
-                      return setSelectedRoom(r);
-                    } 
-                  }
-
-                  setSelectedRoom(null);
-                }} />
+                onSelectRoom={handleSelectRoom}
+                selectedRoomId={selectedRoomId} />
             ) : (
-              <SelectPlan listData={listData} onSelectPlan={plan => setPlan(plan)} />
+              <SelectPlan onSelectPlan={plan => setPlan(plan)} />
             )}
           </div>
         </Popover>

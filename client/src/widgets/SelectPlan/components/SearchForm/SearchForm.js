@@ -1,7 +1,7 @@
 import { Form, Input, Button } from 'antd';
 import { BankOutlined, LayoutOutlined } from '@ant-design/icons';
 
-function SearchForm({ onSubmit }) {
+function SearchForm({ isLoading, onSubmit }) {
     return (
         <Form name='horizontal_login' layout='inline' onFinish={onSubmit}
             style={{ justifyContent: 'center', position: 'sticky', top: '0', backgroundColor: '#fff', zIndex: 999, padding: '16px 0' }} size='large'>
@@ -26,6 +26,7 @@ function SearchForm({ onSubmit }) {
                     <Button
                         type='primary'
                         htmlType='submit'
+                        loading={isLoading}
                         block
                     >
                         Найти

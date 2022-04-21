@@ -1,65 +1,77 @@
-import { useState } from 'react';
-import { Button, PageHeader, Tooltip, Divider, Modal, Form, Radio, Input } from 'antd';
-import { deleteWalls, enableDragging, getLayout } from '../../controllers';
+import { useCallback, useState } from 'react';
+import { Button, PageHeader, Tooltip, Divider, Typography } from 'antd';
+import { deleteWalls, enableDragging, getLayout, addDoor } from '../../controllers';
 import { SaveOutlined, PlusOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined, ClearOutlined, ExportOutlined, RadiusUprightOutlined, SettingOutlined } from '@ant-design/icons';
+import LayoutParams from './components/LayoutParams';
+
+const { Paragraph } = Typography;
 
 function PageHeaderContainer({
     startSelection,
     selectedRoom,
+    selectedRoomId,
     plan,
     isSelectingRoom,
     setIsSelectingRoom,
     startBlockSelection,
     setSelectedRoom,
     sectionScale,
-    sectionLength
+    sectionLength,
+    handleLayoutParamsChange,
+    changeRoom
 }) {
     // Layout params
     const [isLayoutParams, setIsLayoutParams] = useState(false);
-
     const [isLayoutLoading, setIsLayoutLoading] = useState(false);
+    const { layoutParams } = selectedRoom || {};
 
-    const [deskWidth, setDeskWidth] = useState(.8);
-    const [deskDepth, setDeskDepth] = useState(.4);
-    const [deskClearance, setDeskClearance] = useState(.4);
-    const [layoutType, setLayoutType] = useState('combined');
-    const [layoutDirection, setLayoutDirection] = useState('to-wall');
+    const scale = sectionLength / sectionScale;
+    const handleLayoutClick = useCallback(() => {
+        if (!isLayoutLoading) {
+            setIsLayoutLoading(true);
+
+            const { myFloorplan } = window;
+
+            for (const l of selectedRoom.layout) {
+                myFloorplan.remove(l.desk);
+                myFloorplan.remove(l.clearance);
+            }
+
+            if (selectedRoom.layout.length) {
+                selectedRoom.layout = [];
+            }
+
+            getLayout(selectedRoom, selectedRoomId, {
+                deskWidth: layoutParams.desk_width * scale,
+                deskDepth: layoutParams.desk_depth * scale,
+                deskClearance: layoutParams.desk_clearance * scale,
+                layoutType: layoutParams.layout_type,
+                layoutDirection: layoutParams.layout_direction,
+                callback: () => {
+                    setIsLayoutLoading(false);
+                }
+            });
+        }
+    }, [isLayoutLoading, layoutParams, scale, selectedRoom]);
+
+    const handleDeleteRoom = useCallback(() => {
+        const { myFloorplan } = window;
+
+        setSelectedRoom(null);
+
+        const it = myFloorplan.nodes.filter(n => n.roomId === selectedRoomId || n.data?.roomId === selectedRoomId).iterator;
+        while (it.next()) {
+            myFloorplan.remove(it.value);
+        }
+    }, [selectedRoom]);
 
     return (
         <>
-            <Modal title="Параметры авторассадки" visible={isLayoutParams} footer={[
-                <Button key='submit-params' type='primary' onClick={() => setIsLayoutParams(false)}>Сохранить параметры</Button>
-            ]} onCancel={() => setIsLayoutParams(false)}>
-                <Form
-                    layout='horizontal'
-                >
-                    <Form.Item label="Вид рассадки" name="layout">
-                        <Radio.Group defaultValue='combined' value={layoutType} onChange={e => setLayoutType(e.target.value)}>
-                            <Radio.Button value="combined">Комбинированная</Radio.Button>
-                            <Radio.Button value="walls">По стенкам</Radio.Button>
-                            <Radio.Button value="center">По центру</Radio.Button>
-                        </Radio.Group>
-                    </Form.Item>
-                    <Form.Item label="Ширина стола">
-                        <Input placeholder="Значение в метрах" value={deskWidth} type='number' onChange={e => setDeskWidth(e.target.value)} />
-                    </Form.Item>
-                    <Form.Item label="Глубина стола">
-                        <Input placeholder="Значение в метрах" value={deskDepth} type='number' onChange={e => setDeskDepth(e.target.value)} />
-                    </Form.Item>
-                    <Form.Item label="Клиренс места">
-                        <Input placeholder="Значение в метрах" value={deskClearance} type='number' onChange={e => setDeskClearance(e.target.value)} />
-                    </Form.Item>
-                    <Form.Item label="Направление столов" name="layoutDirection">
-                        <Radio.Group defaultValue='to-wall' value={layoutDirection} onChange={e => setLayoutDirection(e.target.value)}>
-                            <Radio.Button value="to-wall">К стенке</Radio.Button>
-                            <Radio.Button value="to-center">К центру</Radio.Button>
-                        </Radio.Group>
-                    </Form.Item>
-                </Form>
-            </Modal>
             <PageHeader
                 ghost={false}
-                title={isSelectingRoom ? 'Новое помещение' : (selectedRoom ? selectedRoom.title : plan.title)}
+                title={isSelectingRoom ? 'Новое помещение' : (selectedRoom ? (
+                    <Paragraph style={{ margin: '0 10px' }} editable={{ onChange: value => changeRoom(selectedRoomId, { title: value })}}>{selectedRoom.title}</Paragraph>
+                ) : plan.title)}
                 subTitle={(isSelectingRoom || selectedRoom) ? null : plan.meta}
                 extra={isSelectingRoom ? [
                     <Button key='cancel' icon={<CloseOutlined />} onClick={() => {
@@ -79,30 +91,15 @@ function PageHeaderContainer({
                         icon={<DeleteOutlined />}
                         style={{ marginLeft: 0 }}
                         danger
-                        onClick={() => {
-                            const { myFloorplan } = window;
-                            const { walls, area } = selectedRoom;
-
-                            setSelectedRoom(null);
-
-                            myFloorplan.remove(area);
-
-                            for (const l of selectedRoom.layout) {
-                                myFloorplan.remove(l.desk);
-                                myFloorplan.remove(l.clearance);
-                            }
-
-                            selectedRoom.blocks.forEach(b => {
-                                myFloorplan.remove(b.node);
-                                myFloorplan.remove(b.perimeter);
-                            });
-                        }}>
+                        onClick={handleDeleteRoom}>
                         Удалить помещение
                     </Button>,
                     <Button
                         key='add-door'
                         icon={<ExportOutlined />}
-                        onClick={startSelection}>
+                        onClick={() => {
+                            addDoor(selectedRoom.perimeter[0], selectedRoomId);
+                        }}>
                         Добавить дверь
                     </Button>,
                     <Button
@@ -117,35 +114,7 @@ function PageHeaderContainer({
                         type='primary'
                         icon={<PlayCircleOutlined />}
                         loading={isLayoutLoading}
-                        onClick={() => {
-                            if (!isLayoutLoading) {
-                                const scale = sectionLength / sectionScale;
-
-                                setIsLayoutLoading(true);
-
-                                const { myFloorplan } = window;
-
-                                for (const l of selectedRoom.layout) {
-                                    myFloorplan.remove(l.desk);
-                                    myFloorplan.remove(l.clearance);
-                                }
-
-                                if (selectedRoom.layout.length) {
-                                    selectedRoom.layout = [];
-                                }
-                                
-                                getLayout(selectedRoom, {
-                                    deskWidth: deskWidth * scale,
-                                    deskDepth: deskDepth * scale,
-                                    deskClearance: deskClearance * scale,
-                                    layoutType,
-                                    layoutDirection,
-                                    callback: () => {
-                                        setIsLayoutLoading(false);
-                                    }
-                                });
-                            }
-                        }}>
+                        onClick={handleLayoutClick}>
                         Авторассадка
                     </Button>,
                     (Boolean(selectedRoom.layout?.length) && (
@@ -159,7 +128,7 @@ function PageHeaderContainer({
 
                                 selectedRoom.layout = [];
                                 setSelectedRoom(null);
-                                setTimeout(() => setSelectedRoom(selectedRoom), 1);
+                                setTimeout(() => setSelectedRoom(selectedRoomId), 1);
                             }
                         }>
                             <Button icon={<ClearOutlined />} />
@@ -177,6 +146,7 @@ function PageHeaderContainer({
                 }
                 onBack={selectedRoom ? (() => setSelectedRoom(null)) : null}
             />
+            <LayoutParams values={layoutParams} isLayoutParams={isLayoutParams} setIsLayoutParams={setIsLayoutParams} setLayoutParams={handleLayoutParamsChange} />
         </>
     );
 }

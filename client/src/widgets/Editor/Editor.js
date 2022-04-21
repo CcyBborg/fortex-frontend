@@ -1,24 +1,17 @@
 import { useEffect } from "react";
-import { enableDragging, enableWallDrawer, drawRoom } from '../../controllers';
-import axios from "axios";
+import { enableDragging, enableWallDrawer, hideWalls } from '../../controllers';
 
-function init({ onSelectRoom }) {
+function init() {
     let {
         myFloorplan,
         Floorplan,
         filesystem,
         ui,
-        go,
-        myOverview,
         FloorplanFilesystem,
         FILESYSTEM_UI_STATE,
         FloorplanUI,
         GUI_STATE,
-        furniturePalette,
-        FURNITURE_NODE_DATA_ARRAY,
-        wallPartsPalette,
-        DEFAULT_MODEL_DATA,
-        WALLPARTS_NODE_DATA_ARRAY
+        DEFAULT_MODEL_DATA
     } = window;
     // Floorplan
     myFloorplan = new Floorplan("myFloorplanDiv");
@@ -28,58 +21,28 @@ function init({ onSelectRoom }) {
     filesystem = new FloorplanFilesystem(myFloorplan, FILESYSTEM_UI_STATE);
     ui = new FloorplanUI(myFloorplan, "ui", "myFloorplan", GUI_STATE);
 
-
-    // myOverview = $(go.Overview, "myOverviewDiv", { observed: myFloorplan, maxScale: 0.5 });
-
-    // furniturePalette = $(go.Palette, "furniturePaletteDiv");
-    // furniturePalette.nodeTemplateMap = myFloorplan.nodeTemplateMap;
-    // furniturePalette.model = new go.GraphLinksModel(FURNITURE_NODE_DATA_ARRAY);
-    // wallPartsPalette = $(go.Palette, "wallPartsPaletteDiv");
-    // wallPartsPalette.nodeTemplateMap = myFloorplan.nodeTemplateMap;
-    // wallPartsPalette.model = new go.GraphLinksModel(WALLPARTS_NODE_DATA_ARRAY);
-
-    // enable hotkeys
-    // var body = document.getElementById('body');
-    // body.addEventListener("keydown", function (e) {
-    //     var keynum = e.which;
-    //     if (e.ctrlKey) {
-    //         e.preventDefault();
-    //         switch (keynum) {
-    //             case 83: filesystem.saveFloorplan(); break; // ctrl + s
-    //             case 79: filesystem.showOpenWindow(); break; // ctrl + o
-    //             case 68: e.preventDefault(); filesystem.newFloorplan(); break; // ctrl + d
-    //             case 82: filesystem.showRemoveWindow(); break; // ctrl + r
-    //             case 49: ui.setBehavior('wallBuilding', myFloorplan); break; // ctrl + 1
-    //             case 50: ui.setBehavior('dragging', myFloorplan); break; // ctrl + 2
-    //             case 72: ui.hideShow('diagramHelpDiv'); break; // ctrl + h
-    //             case 73: ui.hideShow('selectionInfoWindow'); break; // ctrl + i
-    //             case 80: ui.hideShow('myPaletteWindow'); break; // ctrl + p
-    //             case 69: ui.hideShow('myOverviewWindow'); break; // ctrl + e
-    //             case 66: ui.hideShow('optionsWindow'); break; // ctrl + b
-    //             case 71: ui.hideShow('statisticsWindow'); break; // ctrl + g
-    //         }
-    //     }
-    // });
-
     // default model data stored in Floorplanner-Constants.js
     myFloorplan.floorplanFilesystem.loadFloorplanFromModel(DEFAULT_MODEL_DATA);
     ui.setBehavior("dragging");
-
-    myFloorplan.addDiagramListener("ObjectSingleClicked",
-        function (e) {
-            onSelectRoom(e.subject.part);
-        });
-
-        myFloorplan.addDiagramListener("BackgroundSingleClicked",
-        function (e) {
-            onSelectRoom();
-        });
 }
 
-function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom }) {
+function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom, selectedRoomId }) {
     useEffect(() => {
-        init({ onSelectRoom });
+        init();
     }, []);
+
+    useEffect(() => {
+        const { myFloorplan } = window;
+        myFloorplan.addDiagramListener("ObjectSingleClicked",
+            function (e) {
+                onSelectRoom(e.subject.part);
+            });
+
+        myFloorplan.addDiagramListener("BackgroundSingleClicked",
+            function () {
+                onSelectRoom(null);
+            });
+    }, [onSelectRoom]);
 
     useEffect(() => {
         if (isScale) {
@@ -108,6 +71,10 @@ function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom }) {
 
         }
     }, [isScale]);
+
+    useEffect(() => {
+        hideWalls(selectedRoomId);
+    }, [selectedRoomId]);
 
     return (
         <div id="myFloorplanDiv" style={{ height: '680px' }}></div>
