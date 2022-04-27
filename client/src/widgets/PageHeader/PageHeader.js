@@ -17,8 +17,8 @@ function PageHeaderContainer({
     setSelectedRoom,
     sectionScale,
     sectionLength,
-    handleLayoutParamsChange,
-    changeRoom
+    onChangeRoom,
+    layoutTemplates
 }) {
     // Layout params
     const [isLayoutParams, setIsLayoutParams] = useState(false);
@@ -70,7 +70,7 @@ function PageHeaderContainer({
             <PageHeader
                 ghost={false}
                 title={isSelectingRoom ? 'Новое помещение' : (selectedRoom ? (
-                    <Paragraph style={{ margin: '0 10px' }} editable={{ onChange: value => changeRoom(selectedRoomId, { title: value })}}>{selectedRoom.title}</Paragraph>
+                    <Paragraph style={{ margin: '0 10px' }} editable={{ onChange: value => onChangeRoom({ title: value }) }}>{selectedRoom.title}</Paragraph>
                 ) : plan.title)}
                 subTitle={(isSelectingRoom || selectedRoom) ? null : plan.meta}
                 extra={isSelectingRoom ? [
@@ -146,7 +146,13 @@ function PageHeaderContainer({
                 }
                 onBack={selectedRoom ? (() => setSelectedRoom(null)) : null}
             />
-            <LayoutParams values={layoutParams} isLayoutParams={isLayoutParams} setIsLayoutParams={setIsLayoutParams} setLayoutParams={handleLayoutParamsChange} />
+            {isLayoutParams && (
+                <LayoutParams
+                    values={layoutParams}
+                    setIsLayoutParams={setIsLayoutParams}
+                    layoutTemplates={layoutTemplates}
+                    onChangeRoom={onChangeRoom} />
+            )}
         </>
     );
 }

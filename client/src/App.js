@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import uniqid from 'uniqid';
 import randomColor from 'randomcolor';
 import { Layout, Space, Popover, Input, Button } from 'antd';
@@ -24,6 +24,16 @@ function App() {
   const [rooms, setRooms] = useState({});
 
   const selectedRoom = useMemo(() => rooms[selectedRoomId], [selectedRoomId, rooms]);
+
+  const handleChangeRoom = useCallback(attrs => {
+    setRooms({
+      ...rooms,
+      [selectedRoomId]: {
+        ...rooms[selectedRoomId],
+        ...attrs
+      }
+    })
+  }, [selectedRoomId, rooms]);
 
   const startSelection = useCallback(() => {
     setIsSelectingRoom(true);
@@ -100,23 +110,10 @@ function App() {
           selectedRoom={selectedRoom}
           selectedRoomId={selectedRoomId}
           sectionScale={sectionScale}
-          changeRoom={(roomId, changes) => setRooms({
-            ...rooms,
-            [roomId]: {
-              ...rooms[roomId],
-              ...changes
-            }
-          })}
+          onChangeRoom={handleChangeRoom}
           setSelectedRoom={setSelectedRoomId}
-          setRooms={setRooms}
           startBlockSelection={startBlockSelection}
-          handleLayoutParamsChange={newParams => setRooms({
-            ...rooms,
-            [selectedRoomId]: {
-              ...rooms[selectedRoomId],
-              layoutParams: newParams
-            }
-          })}
+          layoutTemplates={config.layout_settings_templates}
           sectionLength={sectionLength} />
       )}
       <Content style={{ padding: '50px' }}>

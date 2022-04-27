@@ -154,8 +154,7 @@ export function drawPerimeter(perimeter, { fill, opacity = 1 }, roomId) {
     const rest = perimeter.slice(1).map(p => `L${p[0]} ${p[1]}`).join(' ');
 
     const node = $(go.Node, {
-        layerName: "Foreground", position: new go.Point(0, 0),
-        selectable: false,
+        layerName: "Foreground", position: new go.Point(0, 0), selectable: false
     },
         $(go.Shape,
             {
