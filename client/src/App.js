@@ -1,9 +1,9 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import uniqid from 'uniqid';
 import randomColor from 'randomcolor';
 import { Layout, Space, Popover, Input, Button } from 'antd';
 import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls } from './controllers';
-import { CheckOutlined, InfoCircleTwoTone } from '@ant-design/icons';
+import { CheckOutlined, InfoCircleTwoTone, EditOutlined } from '@ant-design/icons';
 import Editor from './widgets/Editor/Editor';
 import SelectPlan from './widgets/SelectPlan/SelectPlan';
 import PageHeader from './widgets/PageHeader/PageHeader';
@@ -25,6 +25,10 @@ function App() {
 
   const selectedRoom = useMemo(() => rooms[selectedRoomId], [selectedRoomId, rooms]);
 
+  const [isPreview, setIsPreview] = useState(
+    Boolean(new URLSearchParams(window.location.search).get('isPreview'))
+  );
+
   const handleChangeRoom = useCallback(attrs => {
     setRooms({
       ...rooms,
@@ -45,6 +49,7 @@ function App() {
         const perimeter = getPerimeter(walls);
         const id = uniqid();
         const area = drawPerimeter(perimeter, { fill: randomColor(), opacity: .3 }, id);
+        area.isArea = true;
 
         const newRoom = {
           title: 'Название помещения',
@@ -73,6 +78,7 @@ function App() {
         enableDragging();
         const perimeter = getPerimeter(walls);
         const node = drawPerimeter(perimeter, { fill: 'red', opacity: .3 }, selectedRoomId);
+        node.isBlock = true;
         selectedRoom.blocks.push(
           {
             node,
@@ -101,12 +107,21 @@ function App() {
 
   return (
     <Layout className='layout'>
-      {edit && (
+      {isPreview && (
+        <Button onClick={() => setIsPreview(false)} style={{
+          position: 'absolute',
+          top: '5px',
+          right: '5px',
+          zIndex: 9999
+        }} icon={<EditOutlined />} type='primary'>Редактировать</Button>
+      )}
+      {(edit && !isPreview) && (
         <PageHeader
           setIsSelectingRoom={setIsSelectingRoom}
           isSelectingRoom={isSelectingRoom}
           startSelection={startSelection}
           plan={plan}
+          setIsPreview={() => setIsPreview(true)}
           selectedRoom={selectedRoom}
           selectedRoomId={selectedRoomId}
           sectionScale={sectionScale}
@@ -116,7 +131,7 @@ function App() {
           layoutTemplates={config.layout_settings_templates}
           sectionLength={sectionLength} />
       )}
-      <Content style={{ padding: '50px' }}>
+      <Content style={{ padding: isPreview ? '0' : '50px' }}>
         {!edit && (
           <Space direction='horizontal' style={{ width: '100%', justifyContent: 'center', marginBottom: '25px' }}>
             <h2 className='center'>{plan ? (
@@ -156,7 +171,8 @@ function App() {
                 onScaleSectionDrawn={sectionLength => setSectionLength(sectionLength)}
                 planImg={plan.img}
                 onSelectRoom={handleSelectRoom}
-                selectedRoomId={selectedRoomId} />
+                selectedRoomId={selectedRoomId}
+                isPreview={isPreview} />
             ) : (
               <SelectPlan onSelectPlan={plan => setPlan(plan)} />
             )}

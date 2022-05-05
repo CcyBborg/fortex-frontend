@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { enableDragging, enableWallDrawer, hideWalls } from '../../controllers';
+import { enableDragging, enableWallDrawer, hideWalls, setPreview } from '../../controllers';
 
 function init() {
     let {
@@ -26,10 +26,21 @@ function init() {
     ui.setBehavior("dragging");
 }
 
-function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom, selectedRoomId }) {
+function Editor({
+    isScale,
+    planImg,
+    onScaleSectionDrawn,
+    onSelectRoom,
+    selectedRoomId,
+    isPreview
+}) {
     useEffect(() => {
         init();
     }, []);
+
+    useEffect(() => {
+        setPreview(isPreview);
+      }, [isPreview]);
 
     useEffect(() => {
         const { myFloorplan } = window;
@@ -77,7 +88,7 @@ function Editor({ isScale, planImg, onScaleSectionDrawn, onSelectRoom, selectedR
     }, [selectedRoomId]);
 
     return (
-        <div id="myFloorplanDiv" style={{ height: '680px' }}></div>
+        <div id="myFloorplanDiv" style={{ height: isPreview ? '100vh' : 'calc(100vh - 140px)' }}></div>
     );
 }
 

@@ -8,7 +8,7 @@
 // The diagram model data for the default floorplanner
 DEFAULT_MODEL_DATA = {
 	"class": "go.GraphLinksModel",
-	"modelData": { "units": "centimeters", "unitsAbbreviation": "cm", "unitsConversionFactor": 2, "gridSize": 10, "wallThickness": 5, "preferences": { "showWallGuidelines": true, "showWallLengths": false, "showWallAngles": true, "showOnlySmallWallAngles": true, "showGrid": true, "gridSnap": true } },
+	"modelData": { "units": "centimeters", "unitsAbbreviation": "cm", "unitsConversionFactor": 2, "gridSize": 5, "wallThickness": 3, "preferences": { "showWallGuidelines": true, "showWallLengths": false, "showWallAngles": true, "showOnlySmallWallAngles": true, "showGrid": true, "gridSnap": true } },
 	"nodeDataArray": [
 	],
 	"linkDataArray": []

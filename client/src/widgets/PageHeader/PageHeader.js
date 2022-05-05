@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Button, PageHeader, Tooltip, Divider, Typography } from 'antd';
 import { deleteWalls, enableDragging, getLayout, addDoor } from '../../controllers';
-import { SaveOutlined, PlusOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined, ClearOutlined, ExportOutlined, RadiusUprightOutlined, SettingOutlined } from '@ant-design/icons';
+import { EyeOutlined, PlusOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined, ClearOutlined, ExportOutlined, RadiusUprightOutlined, SettingOutlined } from '@ant-design/icons';
 import LayoutParams from './components/LayoutParams';
 
 const { Paragraph } = Typography;
@@ -18,6 +18,7 @@ function PageHeaderContainer({
     sectionScale,
     sectionLength,
     onChangeRoom,
+    setIsPreview,
     layoutTemplates
 }) {
     // Layout params
@@ -141,7 +142,8 @@ function PageHeaderContainer({
                         onClick={startSelection}>
                         Выделить помещение
                     </Button>,
-                    <Button key='save' icon={<SaveOutlined />} type='primary'>Сохранить</Button>
+                    <Divider key='divider-2' type="vertical" />,
+                    <Button key='preview' icon={<EyeOutlined />} onClick={setIsPreview}>Превью</Button>
                 ]
                 }
                 onBack={selectedRoom ? (() => setSelectedRoom(null)) : null}

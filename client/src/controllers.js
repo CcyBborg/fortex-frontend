@@ -169,3 +169,10 @@ export function drawPerimeter(perimeter, { fill, opacity = 1 }, roomId) {
 
     return node;
 }
+
+export function setPreview(isPreview) {
+    const it = window.myFloorplan.nodes.filter(n => n.isBlock || n.isArea || n.category === 'WallGroup').iterator;
+    while (it.next()) {
+        it.value.visible = !isPreview;
+    }
+}
