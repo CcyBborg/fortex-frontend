@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import uniqid from 'uniqid';
 import randomColor from 'randomcolor';
 import { Layout, Space, Popover, Input, Button } from 'antd';
-import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls } from './controllers';
+import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls, getPayload } from './controllers';
 import { CheckOutlined, InfoCircleTwoTone, EditOutlined } from '@ant-design/icons';
 import Editor from './widgets/Editor/Editor';
 import SelectPlan from './widgets/SelectPlan/SelectPlan';
@@ -10,10 +10,13 @@ import PageHeader from './widgets/PageHeader/PageHeader';
 import config from './config/admin';
 import 'antd/dist/antd.css';
 import './App.css';
+import axios from 'axios';
 
 const { Content, Footer } = Layout;
 
 function App() {
+  const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+
   const [plan, setPlan] = useState(null);
   const [edit, setEdit] = useState(false);
   const [isSelectingRoom, setIsSelectingRoom] = useState(false);
@@ -26,8 +29,43 @@ function App() {
   const selectedRoom = useMemo(() => rooms[selectedRoomId], [selectedRoomId, rooms]);
 
   const [isPreview, setIsPreview] = useState(
-    Boolean(new URLSearchParams(window.location.search).get('isPreview'))
+    Boolean(urlParams.get('isPreview'))
   );
+
+  useEffect(() => {
+    const planId = urlParams.get('levelId');
+    if (planId) {
+      axios.get(`https://fortexgroup.ru/api/response/blockLevels/get/?key=o4tthMmBtggBgXQD95m2&levelId=${planId}`).then(res => {
+        const parsedRes = JSON.parse(res.data.data);
+        setPlan(parsedRes.plan);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (plan) {
+      axios.get(`https://fortexgroup.ru/api/response/blockLevels/get/?key=o4tthMmBtggBgXQD95m2&levelId=${plan.id}`).then(res => {
+        const parsedRes = JSON.parse(res.data.data);
+  
+        if (parsedRes) {
+          setSectionLength(Number(parsedRes.sectionLength));
+          setSectionScale(Number(parsedRes.sectionScale));
+          setEdit(true);
+          window.myFloorplan.model = window.go.Model.fromJson(parsedRes.model);
+  
+          window.myFloorplan.nodes.each(function (node) {
+            if (node.category === "WallGroup") window.myFloorplan.updateWall(node);
+          });
+
+          setRooms(parsedRes.rooms);
+
+          enableDragging();
+
+          setPlan(parsedRes.plan);
+        }
+      });
+    }
+  }, [plan?.id]);
 
   const handleChangeRoom = useCallback(attrs => {
     setRooms({
@@ -48,15 +86,11 @@ function App() {
         enableDragging();
         const perimeter = getPerimeter(walls);
         const id = uniqid();
-        const area = drawPerimeter(perimeter, { fill: randomColor(), opacity: .3 }, id);
-        area.isArea = true;
+        drawPerimeter(perimeter, { fill: randomColor(), opacity: .3, roomId: id, isArea: true });
 
         const newRoom = {
           title: 'Название помещения',
           perimeter,
-          area,
-          blocks: [],
-          layout: [],
           layoutParams: config.layout_settings_templates.default
         };
         setRoomForWalls(walls, id);
@@ -77,13 +111,14 @@ function App() {
         const { myFloorplan } = window;
         enableDragging();
         const perimeter = getPerimeter(walls);
-        const node = drawPerimeter(perimeter, { fill: 'red', opacity: .3 }, selectedRoomId);
-        node.isBlock = true;
-        selectedRoom.blocks.push(
-          {
-            node,
-            perimeter
-          });
+
+        drawPerimeter(perimeter, {
+          fill: 'red',
+          opacity: .3,
+          roomId: selectedRoomId,
+          isBlock: true,
+          perimeter
+        });
 
         for (let i = 0; i < walls.size; i++) {
           const w = walls.get(i);
@@ -104,6 +139,27 @@ function App() {
       setSelectedRoomId(null);
     }
   }, [rooms]);
+
+  const savePlan = useCallback(() => {
+    axios.post(
+      `https://fortexgroup.ru/api/response/blockLevels/save/?key=o4tthMmBtggBgXQD95m2&levelId=${plan.id}`,
+      {
+        plan,
+        sectionLength,
+        sectionScale,
+        rooms,
+        model: getPayload()
+      }
+    );
+  }, [plan, rooms]);
+
+  useEffect(() => {
+    if (edit) {
+      const timerId = setInterval(savePlan, 10000);
+
+      return (() => clearInterval(timerId));
+    }
+  }, [edit, savePlan]);
 
   return (
     <Layout className='layout'>
@@ -169,7 +225,7 @@ function App() {
               <Editor
                 isScale={plan && !sectionLength}
                 onScaleSectionDrawn={sectionLength => setSectionLength(sectionLength)}
-                planImg={plan.img}
+                plan={plan}
                 onSelectRoom={handleSelectRoom}
                 selectedRoomId={selectedRoomId}
                 isPreview={isPreview} />

@@ -134,7 +134,7 @@ WallBuildingTool.prototype.doDeactivate = function () {
 
     this.isActive = false; // Default functionality
 
-    const walls = new go.List(myFloorplan.nodes.filter(n => n.category === 'WallGroup' && !n.roomId));
+    const walls = new go.List(myFloorplan.nodes.filter(n => n.category === 'WallGroup' && !n.data.roomId));
     if (this.isScale && walls.size === 1) {
         const { data } = walls.get(0);
         this.isScale = false;

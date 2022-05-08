@@ -7,6 +7,7 @@ function init() {
         Floorplan,
         filesystem,
         ui,
+        go,
         FloorplanFilesystem,
         FILESYSTEM_UI_STATE,
         FloorplanUI,
@@ -24,11 +25,28 @@ function init() {
     // default model data stored in Floorplanner-Constants.js
     myFloorplan.floorplanFilesystem.loadFloorplanFromModel(DEFAULT_MODEL_DATA);
     ui.setBehavior("dragging");
+
+    // template
+    const $ = go.GraphObject.make;
+    const perimeterTemplate = $(go.Node, {
+        position: new go.Point(0, 0),
+        selectable: false
+    },
+        $(
+            go.Shape,
+            {},
+            new go.Binding('fill', 'fill'),
+            new go.Binding('opacity', 'opacity'),
+            new go.Binding('geometryString', 'geometryString')
+        )
+    );
+
+    myFloorplan.nodeTemplateMap.add('perimeter', perimeterTemplate);
 }
 
 function Editor({
     isScale,
-    planImg,
+    plan,
     onScaleSectionDrawn,
     onSelectRoom,
     selectedRoomId,
@@ -40,7 +58,7 @@ function Editor({
 
     useEffect(() => {
         setPreview(isPreview);
-      }, [isPreview]);
+    }, [isPreview]);
 
     useEffect(() => {
         const { myFloorplan } = window;
@@ -65,12 +83,12 @@ function Editor({
             const $ = go.GraphObject.make;
 
             myFloorplan.add(
-                $(go.Part,  // this Part is not bound to any model data
+                $(go.Part,
                     {
                         layerName: "Background", position: new go.Point(0, 0),
                         selectable: false, pickable: false
                     },
-                    $(go.Picture, planImg)
+                    $(go.Picture, plan.img)
                 ));
             enableWallDrawer({
                 isScale,

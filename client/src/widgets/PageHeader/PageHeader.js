@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Button, PageHeader, Tooltip, Divider, Typography } from 'antd';
-import { deleteWalls, enableDragging, getLayout, addDoor } from '../../controllers';
+import { deleteWalls, enableDragging, getLayout, addDoor, removeLayout } from '../../controllers';
 import { EyeOutlined, PlusOutlined, CloseOutlined, DeleteOutlined, PlayCircleOutlined, ClearOutlined, ExportOutlined, RadiusUprightOutlined, SettingOutlined } from '@ant-design/icons';
 import LayoutParams from './components/LayoutParams';
 
@@ -31,16 +31,7 @@ function PageHeaderContainer({
         if (!isLayoutLoading) {
             setIsLayoutLoading(true);
 
-            const { myFloorplan } = window;
-
-            for (const l of selectedRoom.layout) {
-                myFloorplan.remove(l.desk);
-                myFloorplan.remove(l.clearance);
-            }
-
-            if (selectedRoom.layout.length) {
-                selectedRoom.layout = [];
-            }
+            removeLayout(selectedRoomId);
 
             getLayout(selectedRoom, selectedRoomId, {
                 deskWidth: layoutParams.desk_width * scale,
@@ -118,23 +109,16 @@ function PageHeaderContainer({
                         onClick={handleLayoutClick}>
                         Авторассадка
                     </Button>,
-                    (Boolean(selectedRoom.layout?.length) && (
-                        <Tooltip key='clear-layout' placement='bottom' title='Очистить рассадку' onClick={
-                            () => {
-                                const { myFloorplan } = window;
-                                for (const l of selectedRoom.layout) {
-                                    myFloorplan.remove(l.desk);
-                                    myFloorplan.remove(l.clearance);
-                                }
+                    <Tooltip key='clear-layout' placement='bottom' title='Очистить рассадку' onClick={
+                        () => {
+                            removeLayout(selectedRoomId);
 
-                                selectedRoom.layout = [];
-                                setSelectedRoom(null);
-                                setTimeout(() => setSelectedRoom(selectedRoomId), 1);
-                            }
-                        }>
-                            <Button icon={<ClearOutlined />} />
-                        </Tooltip>
-                    ))
+                            setSelectedRoom(null);
+                            setTimeout(() => setSelectedRoom(selectedRoomId), 1);
+                        }
+                    }>
+                        <Button icon={<ClearOutlined />} />
+                    </Tooltip>
                 ] : [
                     <Button
                         key='add-room'

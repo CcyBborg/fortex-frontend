@@ -45,7 +45,8 @@ export function deleteWalls(roomId) {
 export function setRoomForWalls(walls, roomId) {
     for (let i = 0; i < walls.size; i++) {
         const w = walls.get(i);
-        w.roomId = roomId;
+        w.selectable = false;
+        w.data.roomId = roomId;
     }
 }
 
@@ -56,7 +57,7 @@ export function hideWalls(selectedRoom) {
 
     const it = myFloorplan.nodes.filter(n => n.category === 'WallGroup').iterator;
     while (it.next()) {
-        if (it.value.roomId === selectedRoom) {
+        if (it.value.data.roomId === selectedRoom) {
             it.value.opacity = 1;
         } else {
             it.value.opacity = .5;
@@ -100,7 +101,12 @@ export function addDoor(point, roomId) {
 }
 
 export function getLayout(room, selectedRoomId, { deskWidth, deskDepth, deskClearance, layoutType, layoutDirection, callback }) {
-    const blocks = [...room.blocks];
+    const blocks = [];
+    const blocksIt = window.myFloorplan.nodes.filter(n => n.data.isBlock && (n.data.roomId === selectedRoomId)).iterator;
+    while (blocksIt.next()) {
+        blocks.push(blocksIt.value.data);
+    }
+
     const it = window.myFloorplan.nodes.filter(n => n.category === 'DoorNode').iterator;
     while (it.next()) {
         if (it.value.data.roomId === selectedRoomId) {
@@ -128,15 +134,11 @@ export function getLayout(room, selectedRoomId, { deskWidth, deskDepth, deskClea
             doors: JSON.stringify(blocks.map(b => b.perimeter))
         }
     }).then(res => {
-        room.layout = [];
-
         for (let i = 0; i < res.data.length; ++i) {
             const [desk, clearance] = res.data[i];
 
-            room.layout.push({
-                desk: drawPerimeter(desk, { fill: 'darksalmon' }, selectedRoomId),
-                clearance: drawPerimeter(clearance, { fill: 'salmon', opacity: .7 }, selectedRoomId)
-            });
+            drawPerimeter(desk, { fill: 'darksalmon', roomId: selectedRoomId, isLayout: true });
+            drawPerimeter(clearance, { fill: 'salmon', opacity: .7, roomId: selectedRoomId, isLayout: true });
         }
 
         callback();
@@ -144,35 +146,32 @@ export function getLayout(room, selectedRoomId, { deskWidth, deskDepth, deskClea
 
 }
 
-export function drawPerimeter(perimeter, { fill, opacity = 1 }, roomId) {
-    const {
-        myFloorplan,
-        go
-    } = window;
-    const $ = go.GraphObject.make;
-
+export function drawPerimeter(perimeter, data) {
+    const { myFloorplan } = window;
     const rest = perimeter.slice(1).map(p => `L${p[0]} ${p[1]}`).join(' ');
 
-    const node = $(go.Node, {
-        layerName: "Foreground", position: new go.Point(0, 0), selectable: false
-    },
-        $(go.Shape,
-            {
-                geometryString: `F M${perimeter[0][0]} ${perimeter[0][1]} ${rest}z`,
-                fill, opacity
-            })
-    );
-
-    node.roomId = roomId;
-
-    myFloorplan.add(node);
-
-    return node;
+    myFloorplan.model.addNodeData({
+        key: uniqid(),
+        geometryString: `F M${perimeter[0][0]} ${perimeter[0][1]} ${rest}z`,
+        category: 'perimeter',
+        ...data
+    });
 }
 
 export function setPreview(isPreview) {
-    const it = window.myFloorplan.nodes.filter(n => n.isBlock || n.isArea || n.category === 'WallGroup').iterator;
+    const it = window.myFloorplan.nodes.filter(n => n.data.isBlock || n.data.isArea || n.category === 'WallGroup').iterator;
     while (it.next()) {
         it.value.visible = !isPreview;
+    }
+}
+
+export function getPayload() {
+    return window.myFloorplan.model.toJson();
+}
+
+export function removeLayout(selectedRoomId) {
+    const it = window.myFloorplan.nodes.filter(n => n.data.isLayout && n.data.roomId === selectedRoomId).iterator;
+    while (it.next()) {
+        window.myFloorplan.remove(it.value);
     }
 }
