@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import uniqid from 'uniqid';
 import randomColor from 'randomcolor';
 import { Layout, Space, Popover, Input, Button } from 'antd';
-import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls, getPayload } from './controllers';
+import { enableWallDrawer, deleteWalls, enableDragging, getPerimeter, drawPerimeter, setRoomForWalls, getPayload, setPreview } from './controllers';
 import { CheckOutlined, InfoCircleTwoTone, EditOutlined } from '@ant-design/icons';
 import Editor from './widgets/Editor/Editor';
 import SelectPlan from './widgets/SelectPlan/SelectPlan';
@@ -62,6 +62,8 @@ function App() {
           enableDragging();
 
           setPlan(parsedRes.plan);
+
+          setPreview(isPreview);
         }
       });
     }

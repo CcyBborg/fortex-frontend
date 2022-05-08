@@ -58,7 +58,7 @@ function Editor({
 
     useEffect(() => {
         setPreview(isPreview);
-    }, [isPreview]);
+    }, [isPreview, isScale]);
 
     useEffect(() => {
         const { myFloorplan } = window;
