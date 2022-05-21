@@ -7,15 +7,18 @@ import { CheckOutlined, InfoCircleTwoTone, EditOutlined } from '@ant-design/icon
 import Editor from './widgets/Editor/Editor';
 import SelectPlan from './widgets/SelectPlan/SelectPlan';
 import PageHeader from './widgets/PageHeader/PageHeader';
-import config from './config/admin';
+import config from './config';
 import 'antd/dist/antd.css';
 import './App.css';
 import axios from 'axios';
 
 const { Content, Footer } = Layout;
 
+let lastSaved = null;
+
 function App() {
   const urlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const isUser = useMemo(() => urlParams.get('isUser'), [urlParams]);
 
   const [plan, setPlan] = useState(null);
   const [edit, setEdit] = useState(false);
@@ -46,13 +49,13 @@ function App() {
     if (plan) {
       axios.get(`https://fortexgroup.ru/api/response/blockLevels/get/?key=o4tthMmBtggBgXQD95m2&levelId=${plan.id}`).then(res => {
         const parsedRes = JSON.parse(res.data.data);
-  
+
         if (parsedRes) {
           setSectionLength(Number(parsedRes.sectionLength));
           setSectionScale(Number(parsedRes.sectionScale));
           setEdit(true);
           window.myFloorplan.model = window.go.Model.fromJson(parsedRes.model);
-  
+
           window.myFloorplan.nodes.each(function (node) {
             if (node.category === "WallGroup") window.myFloorplan.updateWall(node);
           });
@@ -143,25 +146,32 @@ function App() {
   }, [rooms]);
 
   const savePlan = useCallback(() => {
-    axios.post(
-      `https://fortexgroup.ru/api/response/blockLevels/save/?key=o4tthMmBtggBgXQD95m2&levelId=${plan.id}`,
-      {
-        plan,
-        sectionLength,
-        sectionScale,
-        rooms,
-        model: getPayload()
-      }
-    );
+    const model = getPayload();
+
+    if (lastSaved === null) {
+      lastSaved = model;
+    } else if (model !== lastSaved) {
+      lastSaved = model;
+      axios.post(
+        `https://fortexgroup.ru/api/response/blockLevels/save/?key=o4tthMmBtggBgXQD95m2&levelId=${plan.id}`,
+        {
+          plan,
+          sectionLength,
+          sectionScale,
+          rooms,
+          model: getPayload()
+        }
+      );
+    }
   }, [plan, rooms]);
 
   useEffect(() => {
-    if (edit) {
+    if (edit && !isUser) {
       const timerId = setInterval(savePlan, 10000);
 
       return (() => clearInterval(timerId));
     }
-  }, [edit, savePlan]);
+  }, [edit, savePlan, isUser]);
 
   return (
     <Layout className='layout'>
@@ -179,6 +189,7 @@ function App() {
           isSelectingRoom={isSelectingRoom}
           startSelection={startSelection}
           plan={plan}
+          isUser={isUser}
           setIsPreview={() => setIsPreview(true)}
           selectedRoom={selectedRoom}
           selectedRoomId={selectedRoomId}

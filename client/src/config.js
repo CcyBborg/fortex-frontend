@@ -24,5 +24,12 @@ export default {
             layout_type: 'center',
             layout_direction: 'to-wall'
         },
+    },
+    user_actions: {
+        outline: false, // Выделение нового помещения
+        doors: false, // Добавление дверей
+        blocks: true, // Добавление преград
+        delete: false, // Удаление помещений
+        params: true // Параметры рассадки
     }
 };

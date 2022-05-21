@@ -85,10 +85,10 @@ function Editor({
             myFloorplan.add(
                 $(go.Part,
                     {
-                        layerName: "Background", position: new go.Point(0, 0),
+                        layerName: 'Background', position: new go.Point(0, 0),
                         selectable: false, pickable: false
                     },
-                    $(go.Picture, plan.img)
+                    $(go.Picture, plan.img, { sourceCrossOrigin: () => 'anonymous' })
                 ));
             enableWallDrawer({
                 isScale,
